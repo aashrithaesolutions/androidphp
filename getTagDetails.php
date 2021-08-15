@@ -1,0 +1,144 @@
+<?php
+if(isset($_POST['tagnumber'])){
+    $tagnumber=$_POST['tagnumber'];
+}
+if(isset($_POST['type'])){
+    $ty=$_POST['type'];
+}
+if(isset($_POST['datasource'])){
+    $datasource=$_POST['datasource'];
+}
+$details = array(
+    'tagnumber' => $tagnumber
+);
+$response = array();
+$success = getTagDetail($details,$datasource,$ty);
+if (!empty($success)) {
+    $response['success'] = "1";
+    $response['message'] = "found!";
+    $response['details'] = $success;
+    echo json_encode($response);
+} else {
+    $response['success'] = "0";
+    $response['message'] = "not found. Please try again!";
+    $response['details'] = $success;
+    echo json_encode($response);
+}
+function getTagDetail($details,$datasource,$ty) {
+    $pdo=new PDO("odbc:DRIVER={Microsoft Access Driver (*.mdb)}; DBQ=$datasource; Uid=; Pwd=;");
+    $array = array();
+    if($ty==1){
+        //Original
+        /*
+        $stmt = $pdo->prepare(" SELECT *,(ST_TOTWEIGHT*RATE) as ITEMVALUE,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER) as TAXABLE,
+        ((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03 as GST,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)+((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03
+         as TOTALVALUE from (SELECT TOP 1 ST_ITEMNO,ST_DATE,ITEM_CODE,ITEM_NAME,ST_DESIGNNO,ST_QTY,ST_GROSSWT,ST_LESS,ST_NETWT,ST_WASTAGE,ST_TOTWEIGHT,
+        ST_MC,(ST_OTHER+ST_OVALUE) AS OTHER,
+        IIF(gi.ITEM_PURITY=22,R_G22BR,IIF(gi.ITEM_PURITY=21,R_G21BR,IIF(gi.ITEM_PURITY=20,R_G20BR,IIF(gi.ITEM_PURITY=18,R_G18BR,'0')))) as RATE
+         FROM GSTOCKMASTER_T gs,RATE_T  r,GITEMMASTER_T gi WHERE gs.ST_ITEMNO=gi.ITEM_NO and ST_STOCKNO=:tagnumber and ST_TRANSTYPE='TAG' and ST_STATUS='A' order by R_DATE desc) ");
+        */
+        //mc va on totwt
+        /*
+        $stmt = $pdo->prepare(" SELECT *,(ST_TOTWEIGHT*RATE) as ITEMVALUE,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER) as TAXABLE,
+        ((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03 as GST,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)+((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03
+         as TOTALVALUE from (SELECT TOP 1 ST_ITEMNO,ST_DATE,ITEM_CODE,ITEM_NAME,ST_DESIGNNO,ST_QTY,ST_GROSSWT,ST_LESS,ST_NETWT,ST_WASTAGE,ST_TOTWEIGHT,
+        IIF(gs.ST_MCTYPE='V',gs.ST_TOTWEIGHT*(IIF(gi.ITEM_PURITY=22,R_G22BR,IIF(gi.ITEM_PURITY=21,R_G21BR,IIF(gi.ITEM_PURITY=20,R_G20BR,IIF(gi.ITEM_PURITY=18,R_G18BR,'0')))))*(gs.ST_MCRATE/100),gs.ST_MC) AS ST_MC,(ST_OTHER+ST_OVALUE) AS OTHER,
+        IIF(gi.ITEM_PURITY=22,R_G22BR,IIF(gi.ITEM_PURITY=21,R_G21BR,IIF(gi.ITEM_PURITY=20,R_G20BR,IIF(gi.ITEM_PURITY=18,R_G18BR,'0')))) as RATE
+         FROM GSTOCKMASTER_T gs,RATE_T  r,GITEMMASTER_T gi WHERE gs.ST_ITEMNO=gi.ITEM_NO and ST_STOCKNO=:tagnumber and ST_TRANSTYPE='TAG' and ST_STATUS='A' order by R_DATE desc) ");
+        */
+        //mcva on defvalues table
+        /*
+        $stmt = $pdo->prepare(" SELECT *,(ST_TOTWEIGHT*RATE) as ITEMVALUE,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER) as TAXABLE,
+        ((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03 as GST,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)+((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03
+         as TOTALVALUE from (SELECT TOP 1 ST_ITEMNO,ST_DATE,ITEM_CODE,ITEM_NAME,ST_DESIGNNO,ST_QTY,ST_GROSSWT,ST_LESS,ST_NETWT,ST_WASTAGE,ST_TOTWEIGHT,
+        IIF(gs.ST_MCTYPE='V',IIF ((SELECT TOP 1 CAL_MC_TYPE from DEFVALUES_T)='Total_wt',gs.ST_TOTWEIGHT,gs.ST_NETWT)*(IIF(gi.ITEM_PURITY=22,R_G22BR,IIF(gi.ITEM_PURITY=21,R_G21BR,IIF(gi.ITEM_PURITY=20,R_G20BR,IIF(gi.ITEM_PURITY=18,R_G18BR,'0')))))*(gs.ST_MCRATE/100),gs.ST_MC) AS ST_MC,(ST_OTHER+ST_OVALUE) AS OTHER,
+        IIF(gi.ITEM_PURITY=22,R_G22BR,IIF(gi.ITEM_PURITY=21,R_G21BR,IIF(gi.ITEM_PURITY=20,R_G20BR,IIF(gi.ITEM_PURITY=18,R_G18BR,'0')))) as RATE
+         FROM GSTOCKMASTER_T gs,RATE_T  r,GITEMMASTER_T gi,DEFVALUES_T dv WHERE gs.ST_ITEMNO=gi.ITEM_NO and ST_STOCKNO=:tagnumber and ST_TRANSTYPE='TAG' and ST_STATUS='A' order by R_DATE desc) ");
+        */
+        /*
+        $stmt = $pdo->prepare(" SELECT *,(ST_TOTWEIGHT*RATE) as ITEMVALUE,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER) as TAXABLE,
+    ((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03 as GST,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)+((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03
+     as TOTALVALUE from (SELECT TOP 1 ST_ITEMNO,ST_DATE,ITEM_CODE,ITEM_NAME,ST_DESIGNNO,ST_QTY,ST_GROSSWT,ST_LESS,ST_NETWT,ST_WASTAGE,ST_TOTWEIGHT,
+    IIF(gs.ST_MCTYPE='V',IIF (dv.CAL_MC_TYPE='Total_wt',gs.ST_TOTWEIGHT,gs.ST_NETWT)*(IIF(gi.ITEM_PURITY=22,R_G22BR,IIF(gi.ITEM_PURITY=21,R_G21BR,IIF(gi.ITEM_PURITY=20,R_G20BR,IIF(gi.ITEM_PURITY=18,R_G18BR,'0')))))*(gs.ST_MCRATE/100),gs.ST_MC) AS ST_MC,(ST_OTHER+ST_OVALUE) AS OTHER,
+    IIF(gi.ITEM_PURITY=22,R_G22BR,IIF(gi.ITEM_PURITY=21,R_G21BR,IIF(gi.ITEM_PURITY=20,R_G20BR,IIF(gi.ITEM_PURITY=18,R_G18BR,'0')))) as RATE
+     FROM GSTOCKMASTER_T gs,RATE_T  r,GITEMMASTER_T gi,(SELECT TOP 1 CAL_MC_TYPE from DEFVALUES_T) dv WHERE gs.ST_ITEMNO=gi.ITEM_NO and ST_STOCKNO=:tagnumber and ST_TRANSTYPE='TAG' and ST_STATUS='A' order by R_DATE desc)");
+      */  
+      $stmt = $pdo->prepare(" SELECT *,(ST_TOTWEIGHT*RATE) as ITEMVALUE,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER) as TAXABLE,
+    ((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03 as GST,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)+((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03
+     as TOTALVALUE from (SELECT TOP 1 ST_ITEMNO,ST_DATE,ITEM_CODE,ITEM_NAME,ST_DESIGNNO,ST_QTY,ST_GROSSWT,ST_LESS,ST_NETWT,ST_WASTAGE,ST_TOTWEIGHT,
+    IIF(gs.ST_MCTYPE='V',IIF (dv.CAL_MC_TYPE='Total_wt',gs.ST_TOTWEIGHT,gs.ST_NETWT)*(IIF(gi.ITEM_PURITY=22,R_G22BR,IIF(gi.ITEM_PURITY=21,R_G21BR,IIF(gi.ITEM_PURITY=20,R_G20BR,IIF(gi.ITEM_PURITY=18,R_G18BR,'0')))))*(gs.ST_MCRATE/100),gs.ST_MC) AS ST_MC,(ST_OTHER+ST_OVALUE) AS OTHER,
+    IIF(gi.ITEM_PURITY=22,R_G22BR,IIF(gi.ITEM_PURITY=21,R_G21BR,IIF(gi.ITEM_PURITY=20,R_G20BR,IIF(gi.ITEM_PURITY=18,R_G18BR,'0')))) as RATE
+     FROM GSTOCKMASTER_T gs,RATE_T  r,GITEMMASTER_T gi,(SELECT CAL_MC_TYPE from DEFVALUES_T WHERE SL_NO=3) dv WHERE gs.ST_ITEMNO=gi.ITEM_NO and ST_STOCKNO=:tagnumber and ST_TRANSTYPE='TAG' and ST_STATUS='A' order by R_DATE desc)");
+      
+    }else{
+        
+        $stmt = $pdo->prepare(" SELECT *,(ST_TOTWEIGHT*RATE) as ITEMVALUE,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER) as TAXABLE,
+        ((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03 as GST,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)+((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03
+         as TOTALVALUE from (SELECT TOP 1 ST_ITEMNO,ST_DATE,ITEM_CODE,ITEM_NAME,ST_DESIGNNO,ST_QTY,ST_GROSSWT,ST_LESS,ST_NETWT,ST_WASTAGE,ST_TOTWEIGHT,
+        ST_MC,(ST_OTHER+ST_OVALUE) AS OTHER, R_SBR as RATE FROM SSTOCKMASTER_T gs,RATE_T  r,SITEMMASTER_T gi 
+         WHERE gs.ST_ITEMNO=gi.ITEM_NO and ST_STOCKNO=:tagnumber and ST_TRANSTYPE='TAG' and ST_STATUS='A' order by R_DATE desc) ");
+       
+        /*
+        $stmt = $pdo->prepare(" SELECT *,(ST_TOTWEIGHT*RATE) as ITEMVALUE,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER) as TAXABLE,
+        ((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03 as GST,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)+((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03
+         as TOTALVALUE from (SELECT TOP 1 ST_ITEMNO,ST_DATE,ITEM_CODE,ITEM_NAME,ST_DESIGNNO,ST_QTY,ST_GROSSWT,ST_LESS,ST_NETWT,ST_WASTAGE,ST_TOTWEIGHT,
+        IIF(gs.ST_MCTYPE='V',IIF (dv.CAL_MC_TYPE='Total_wt',gs.ST_TOTWEIGHT,gs.ST_NETWT)*(gs.ST_MCRATE/100),gs.ST_MC),(ST_OTHER+ST_OVALUE) AS OTHER, R_SBR as RATE FROM SSTOCKMASTER_T gs,RATE_T  r,SITEMMASTER_T gi, (SELECT CAL_MC_TYPE from DEFVALUES_T WHERE SL_NO=12) dv
+         WHERE gs.ST_ITEMNO=gi.ITEM_NO and ST_STOCKNO=:tagnumber and ST_TRANSTYPE='TAG' and ST_STATUS='A' order by R_DATE desc) ");
+        */
+        }
+    $stmt->execute($details);
+    $i=0;
+    while ($temp = $stmt->fetch(PDO::FETCH_ASSOC)) {
+        $array[$i]=$temp;
+        $i++;
+      }
+    $stmt = null;
+    return $array;
+}
+/*
+
+ST_TRANSTY TAG
+ST_STATUS A
+ST_STOCKNO
+ITEMNO
+DESIGNN
+NETWT
+WASTAGE
+TOTWEIGHT
+weight*rate
+MC
+OTHER , OVALUE (ADD)=other
+
+r_g22br in rate_t
+
+((rate*weight)+mc+other)+((rate*weight)+mc+other)*3/100|
+
+
+if($ty==1){
+        $sql="SELECT *,(ST_TOTWEIGHT*RATE) as ITEMVALUE,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER) as TAXABLE,
+        ((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03 as GST,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)+((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03
+         as TOTALVALUE from (SELECT TOP 1 ST_ITEMNO,ST_DATE,ITEM_CODE,ITEM_NAME,ST_DESIGNNO,ST_QTY,ST_GROSSWT,ST_LESS,ST_NETWT,ST_WASTAGE,ST_TOTWEIGHT,
+        ST_MC,(ST_OTHER+ST_OVALUE) AS OTHER,
+        IIF(gi.ITEM_PURITY=22,R_G22BR,IIF(gi.ITEM_PURITY=21,R_G21BR,IIF(gi.ITEM_PURITY=20,R_G20BR,IIF(gi.ITEM_PURITY=18,R_G18BR,'0')))) as RATE
+         FROM GSTOCKMASTER_T gs,RATE_T  r,GITEMMASTER_T gi WHERE gs.ST_ITEMNO=gi.ITEM_NO and ST_STOCKNO=$tagnumber and ST_TRANSTYPE='TAG' and ST_STATUS='A' order by R_DATE desc)" ;
+    }else{
+        $sql="SELECT *,(ST_TOTWEIGHT*RATE) as ITEMVALUE,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER) as TAXABLE,
+        ((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03 as GST,((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)+((ST_TOTWEIGHT*RATE)+ST_MC+OTHER)*0.03
+         as TOTALVALUE from (SELECT TOP 1 ST_ITEMNO,ST_DATE,ITEM_CODE,ITEM_NAME,ST_DESIGNNO,ST_QTY,ST_GROSSWT,ST_LESS,ST_NETWT,ST_WASTAGE,ST_TOTWEIGHT,
+        ST_MC,(ST_OTHER+ST_OVALUE) AS OTHER,
+        R_SBR as RATE
+         FROM SSTOCKMASTER_T gs,RATE_T  r,SITEMMASTER_T gi WHERE gs.ST_ITEMNO=gi.ITEM_NO and ST_STOCKNO=$tagnumber and ST_TRANSTYPE='TAG' and ST_STATUS='A' order by R_DATE desc)" ;
+    }
+    $rs=odbc_exec($conn,$sql);
+    $i=0;
+    while($row=odbc_fetch_array($rs)){
+        $result[$i]=$row;
+        $i++;
+    }
+    odbc_close($conn);
+    return $result;
+
+
+
+*/
+?>
